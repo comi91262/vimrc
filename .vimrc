@@ -2,6 +2,7 @@
 nnoremap <silent><C-e> :NERDTreeToggle<CR>
 inoremap <silent> jj <ESC>
 nnoremap Y y$
+noremap PP "0p
 
 set noundofile  "undoファイルを作らない
 "Encode
@@ -81,10 +82,14 @@ call dein#add('Shougo/unite.vim')
 "call dein#add('Shougo/context_filetype.vim')
 "call dein#add('osyo-manga/vim-precious')
 call dein#add('posva/vim-vue')
+
 "for C++
 call dein#add('vim-jp/vim-cpp')
 call dein#add('thinca/vim-quickrun')
 call dein#add('justmao945/vim-clang')
+"for Rust
+call dein#add('rust-lang/rust.vim')
+call dein#add('racer-rust/vim-racer')
 
 call dein#end()
 call dein#save_state()
@@ -99,19 +104,15 @@ syntax enable
 if dein#check_install()
   call dein#install()
 endif
-
 "End dein Scripts-------------------------
 
-"Completion ----------------------------------------------
 
+"Completion ----------------------------------------------
 
 " Disable AutoComplPop.
 let g:acp_enableAtStartup = 0
 " 起動時に有効化
-let g:neocomplete#enable_at_startup = 1
-" 大文字が入力されるまで大文字小文字の区別を無視する
-let g:neocomplete#enable_smart_case = 1
-" _(アンダースコア)区切りの補完を有効化
+let g:neocomplete#enable_at_startup = 1 " 大文字が入力されるまで大文字小文字の区別を無視する let g:neocomplete#enable_smart_case = 1 " _(アンダースコア)区切りの補完を有効化
 let g:neocomplete#enable_underbar_completion = 1
 let g:neocomplete#enable_camel_case_completion  =  1
 " ポップアップメニューで表示される候補の数
@@ -119,22 +120,25 @@ let g:neocomplete#max_list = 20
 " シンタックスをキャッシュするときの最小文字長
 let g:neocomplete#sources#syntax#min_keyword_length = 3
 " 補完を表示する最小文字数
-let g:neocomplete#auto_completion_start_length = 4 
+let g:neocomplete#auto_completion_start_length = 2 
 " preview window を閉じない
 let g:neocomplete#enable_auto_close_preview = 0
 
 let g:neocomplete#max_keyword_width = 10000
 
 
+
 " Enable heavy omni completion.
 if !exists('g:neocomplete#force_omni_input_patterns')
-        let g:neocomplete#force_omni_input_patterns = {}
+  let g:neocomplete#sources#omni#input_patterns = {}
 endif
-let g:neocomplete#force_overwrite_completefunc = 1
-let g:neocomplete#force_omni_input_patterns.c = '[^.[:digit:] *\t]\%(\.\|->\)'
-let g:neocomplete#force_omni_input_patterns.cpp = '[^.[:digit:] *\t]\%(\.\|->\)\|\h\w*::'
-let g:neocomplete#sources#omni#input_patterns.php = '[^. \t]->\h\w*\|\h\w*::'
 
+let g:neocomplete#force_overwrite_completefunc = 1
+
+let g:neocomplete#sources#omni#input_patterns.c = '[^.[:digit:] *\t]\%(\.\|->\)'
+let g:neocomplete#sources#omni#input_patterns.cpp = '[^.[:digit:] *\t]\%(\.\|->\)\|\h\w*::'
+let g:neocomplete#sources#omni#input_patterns.php = '[^. \t]->\h\w*\|\h\w*::'
+let g:neocomplete#sources#omni#input_patterns.rust = '[^.[:digit:] *\t]\%(\.\|\::\)\%(\h\w*\)\?'
 " Recommended key-mappings.
 " <CR>: close popup and save indent.
 inoremap <silent> <CR> <C-r>=<SID>my_cr_function()<CR>
@@ -202,23 +206,27 @@ nnoremap <expr><silent> <C-c> quickrun#is_running() ? quickrun#sweep_sessions() 
 
 let g:quickrun_config = get(g:, 'quickrun_config', {})
 " vimproc を使って非同期に実行し，結果を quickfix に出力する
-let g:quickrun_config._ = {
-            \ 'runner' : 'vimproc',
-            \ "hook/cd/enable" : 1,
-            \ "hook/cd/directory" : "$HOME/Production/hobby/coding",
-            \ 'outputter' : 'error',
-            \ 'outputter/error/success' : 'buffer',
-            \ 'outputter/error/error'   : 'quickfix',
-            \ 'outputter/buffer/split'  : ':rightbelow 8sp',
-            \ 'outputter/buffer/close_on_empty' : 1,
-            \ 'runner/vimproc/updatetime' : 10,
-            \ }
+" let g:quickrun_config._ = {
+"            \ 'runner' : 'vimproc',
+"            \ 'outputter' : 'error',
+"            \ 'outputter/error/success' : 'buffer',
+"            \ 'outputter/error/error'   : 'quickfix',
+"            \ 'outputter/buffer/split'  : ':rightbelow 8sp',
+"            \ 'outputter/buffer/close_on_empty' : 1,
+"            \ 'runner/vimproc/updatetime' : 10,
+"            \ '_'      : {'split' : 'vertical'},
+"            \ }
+let g:quickrun_config={'_': {'split': 'vertical'}}  
+set splitright
 
 let g:quickrun_config.cpp = {
             \ 'command' : 'clang++',
             \ 'cmdopt'  : '-std=c++11 -Wall -Wextra',
             \ }
 
+let g:quickrun_no_default_key_mappings = 1
+nnoremap \r :cclose<CR>:write<CR>:QuickRun -mode n<CR>
+xnoremap \r :<C-U>cclose<CR>:write<CR>gv:QuickRun -mode v<CR>
 
 let g:clang_auto = 0
 let g:clang_complete_auto = 0
@@ -235,4 +243,38 @@ let g:clang_c_options = '-std=c11'
 let g:clang_cpp_options = '-std=c++11 -stdlib=libc++ --pedantic-errors'
 
 
+"for Rust
+autocmd BufRead,BufNewFile FileType rust compiler cargo
+let g:rustfmt_autosave = 1
+let g:rustfmt_command = '$HOME/.cargo/bin/rustfmt'
+"let g:rust_clip_command = 'pbcopy'
+set hidden
+let g:racer_cmd = '$HOME/.cargo/bin/racer'
+let g:racer_experimental_completer = 1
+autocmd BufNewFile,BufRead *.crs setf rust
+autocmd BufNewFile,BufRead *.rs  let g:quickrun_config.rust = {'exec' : 'cargo run'}
+autocmd BufNewFile,BufRead *.crs let g:quickrun_config.rust = {'exec' : 'cargo script %s -- %a'}
+
+
 autocmd vimenter * NERDTree
+
+"for Display
+set background=dark
+colorscheme hybrid
+"let g:hybrid_custom_term_colors = 1
+let g:hybrid_use_iTerm_colors = 1
+let g:hybrid_reduced_contrast = 1
+
+syntax on
+set number
+set title
+set showcmd
+set ruler
+set showmatch
+set matchtime=3
+set laststatus=2
+set guifont=DejaVu\ Sans\ Mono\ 18
+
+
+
+
